@@ -27,37 +27,7 @@ services:
       - pipeline_network
 
 
-  # ---------------- Destination Database ----------------
-
-  destination:
-    image: postgres:16
-    container_name: destination_db
-    restart: unless-stopped
-
-    environment:
-      POSTGRES_USER: destination_postgres
-      POSTGRES_PASSWORD: destinationpostgres
-      POSTGRES_DB: destination
-
-    ports:
-      - "5434:5432"
-
-    volumes:
-      - destination_data:/var/lib/postgresql/data
-
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U destination_postgres -d destination"
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-    networks:
-      - pipeline_network
-
+  
 
   # ---------------- Data Initialization ----------------
 
@@ -72,14 +42,11 @@ services:
 
     environment:
       SOURCE_DATABASE_URL: postgresql+psycopg2://source_postgres:sourcepostgres@source:5432/source
-      DESTINATION_DATABASE_URL: postgresql+psycopg2://destination_postgres:destinationpostgres@destination:5432/destination
 
     depends_on:
       source:
         condition: service_healthy
 
-      destination:
-        condition: service_healthy
 
     networks:
       - pipeline_network
@@ -211,13 +178,61 @@ services:
       - pipeline_network
 
 
+
+  # ---------------- Dagster ----------------
+
+  dagster:
+    build:
+      context: ./dagster
+      dockerfile: Dockerfile
+
+    image: custom_dagster:latest
+    container_name: dagster
+    restart: unless-stopped
+
+    working_dir: /opt/dagster/app
+
+    environment:
+      DAGSTER_HOME: /opt/dagster/home
+
+    command:
+      - dagster
+      - dev
+      - -f
+      - /opt/dagster/app/dags/definitions.py
+      - -h
+      - 0.0.0.0
+      - -p
+      - "3000"
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      # Dagster job definitions
+      - ./dagster/dags:/opt/dagster/app/dags
+
+      # Persist Dagster run history
+      - dagster_home:/opt/dagster/home
+
+      # Allow Dagster to launch Docker containers
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    depends_on:
+      source:
+        condition: service_healthy
+
+    networks:
+      - pipeline_network
+
+
 # ---------------- Named Volumes ----------------
 
 volumes:
   source_data:
-  destination_data:
   airflow_db_data:
   airflow_logs:
+  dagster_home:
 
 
 # ---------------- Docker Network ----------------

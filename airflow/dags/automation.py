@@ -16,7 +16,6 @@ with DAG(
         image="data_init:latest",
         docker_url="unix://var/run/docker.sock",
 
-        # Must match the network name in docker-compose.yml
         network_mode="dagster-vs-airflow-network",
 
         auto_remove="success",
