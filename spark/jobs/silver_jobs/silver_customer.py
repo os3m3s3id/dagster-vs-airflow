@@ -21,6 +21,7 @@ def run_customer_silver(spark):
 
     statement = connection.createStatement()
     statement.execute("CREATE SCHEMA IF NOT EXISTS silver")
+    statement.execute("DROP TABLE IF EXISTS silver.silver_customer")
 
     statement.close()
     connection.close()
@@ -38,7 +39,7 @@ def run_customer_silver(spark):
         .option("lowerBound", "1")
         .option("upperBound", "10000000")
         .option("numPartitions", "8")
-        .option("fetchsize", "10000")
+        .option("fetchsize", "20000")
         .load()
     )
 
@@ -76,12 +77,15 @@ def run_customer_silver(spark):
         subset=[
             "customer_id",
             "created_at",
+            "phone"
         ]
     )
 
     cleaned_df = cleaned_df.fillna(
         {
             "first_name": "Unknown",
+            "email":"Unknown",
+            "address": "Unknown",
             "last_name": "Unknown",
             "city": "Unknown",
             "country": "Unknown",

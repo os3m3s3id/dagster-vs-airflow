@@ -14,3 +14,7 @@ The transformation flow:
 6. Add or combine columns. --> combined the first_name and the last_name to be in one column called full_name.
 7. Remove unnecessary columns.--> remove the first_name and the last_name
 8. Write to silver.
+
+
+Before cleaning the total are 21973380.
+After cleaning the total are 17249048.

@@ -17,8 +17,13 @@ USER spark
 CMD ["/opt/spark/bin/spark-submit", \
      "--master", "spark://spark-master:7077", \
      "--deploy-mode", "client", \
+     "--name", "silver-customer-cleansing", \
      "--jars", "/opt/spark/jars/postgresql-42.7.7.jar", \
+     "--driver-memory", "2g", \
      "--executor-cores", "4", \
      "--executor-memory", "3g", \
      "--total-executor-cores", "4", \
+     "--conf", "spark.sql.shuffle.partitions=16", \
+     "--conf", "spark.sql.adaptive.enabled=true", \
+     "--conf", "spark.sql.adaptive.coalescePartitions.enabled=true", \
      "/opt/spark-app/main.py"]
