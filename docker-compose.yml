@@ -40,9 +40,6 @@ services:
     container_name: data_init
     restart: "no"
   
-    profiles:
-      - manual
-  
     environment:
       SOURCE_DATABASE_URL: postgresql+psycopg2://source_postgres:sourcepostgres@source:5432/source
   
