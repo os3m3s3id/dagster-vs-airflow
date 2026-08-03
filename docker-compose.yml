@@ -179,6 +179,95 @@ services:
 
 
 
+  # ---------------- Spark Master ----------------
+
+  spark_master:
+    image: spark:4.1.2-scala2.13-java17-python3-ubuntu
+    container_name: spark_master
+    restart: unless-stopped
+
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_MASTER_HOST: spark-master
+      SPARK_MASTER_PORT: "7077"
+      SPARK_MASTER_WEBUI_PORT: "8080"
+
+    ports:
+      # Spark cluster connection
+      - "7077:7077"
+
+      # Host port 8082 is used because Airflow already uses 8080
+      - "8082:8080"
+
+    networks:
+      pipeline_network:
+        aliases:
+          - spark-master
+
+
+  # ---------------- Spark Worker ----------------
+
+  spark_worker:
+    image: spark:4.1.2-scala2.13-java17-python3-ubuntu
+    container_name: spark_worker
+    restart: unless-stopped
+
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - spark://spark-master:7077
+
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_WORKER_CORES: "4"
+      SPARK_WORKER_MEMORY: "4g"
+      SPARK_WORKER_WEBUI_PORT: "8081"
+
+    ports:
+      - "8083:8081"
+
+    depends_on:
+      - spark_master
+
+    networks:
+      - pipeline_network
+
+  # ---------------- Spark Silver Jobs ----------------
+  silver_job:
+    build:
+      context: "./spark/jobs/silver_jobs"
+      dockerfile: Dockerfile
+
+    image: silver_job:latest
+    container_name: silver_job
+    restart: "no"
+
+    environment:
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SOURCE_JDBC_URL: jdbc:postgresql://source:5432/source
+      SOURCE_TABLE: raw.customer
+      SOURCE_DB_USER: source_postgres
+      SOURCE_DB_PASSWORD: sourcepostgres
+      SOURCE_PARTITION_COLUMN: customer_id
+      SOURCE_LOWER_BOUND: "1"
+      SOURCE_UPPER_BOUND: "10000000"
+      SOURCE_NUM_PARTITIONS: "8"
+
+    depends_on:
+      source:
+        condition: service_healthy
+      spark_master:
+        condition: service_started
+      spark_worker:
+        condition: service_started
+
+    networks:
+      - pipeline_network
+
   # ---------------- Dagster ----------------
 
   dagster:
@@ -233,6 +322,7 @@ volumes:
   airflow_db_data:
   airflow_logs:
   dagster_home:
+  spark_worker_data:
 
 
 # ---------------- Docker Network ----------------

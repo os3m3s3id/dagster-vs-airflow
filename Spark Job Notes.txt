@@ -1,0 +1,16 @@
+So Spark will be connected directly to the spark_master, and then the spark_master will give a job to the spark_worker.
+
+Create a silver schema.
+
+I used JDBC partitioning to read the data in parallel when I loaded it into Spark because it's 10 GB, which is large.
+
+
+The transformation flow:
+1. Inspect schema.
+2. Select only needed columns.
+3. Standardize data types and text.
+4. Handle nulls based on business rules --> I dropped the rows where the (customer_id and created_at) are null, and I replace the null with the unknown (first_name, last_name, city and country)
+5. Handle duplicates --> deleted the duplicates and keep only the newest one if we have a duplicate using window.
+6. Add or combine columns. --> combined the first_name and the last_name to be in one column called full_name.
+7. Remove unnecessary columns.--> remove the first_name and the last_name
+8. Write to silver.
